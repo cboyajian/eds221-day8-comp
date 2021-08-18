@@ -125,14 +125,80 @@ lizard_counts_date <- lizards %>%
   summarize(count = n())
 ```
 
+
+Make a line plot of date (x) and count (y)
 ```{r}
-ggplot(data = lizard_counts_date, aes(x = ))
+ggplot(data = lizard_counts_date, aes(x = date, y = count)) +
+  geom_line() +
+  labs(x = "Date",
+       y = "Number of lizards counted") +
+  scale_x_date(date_breaks = "3 years",
+               date_labels = "%Y")
 ```
 
+Adding color to scatter plot:
+```{r}
+ggplot(data = lizards, aes(x = total_length, y = weight)) +
+  geom_point(aes(color = weight), show.legend = FALSE) +
+  scale_color_gradientn(colors = c("orange", "red", "purple", "black"))
+  #Can give it a vector of colors to manually create gradient
 
+```
 
+Manually creating step-wise colors schemes (doesn't do gradients anymore)
+```{r}
+ggplot(data = lizards, aes(x = total_length, y = weight)) +
+  geom_point(aes(color = weight), show.legend = FALSE) +
+  scale_color_stepsn(colors = c("green", "blue", "purple", "pink"),
+                     breaks = c(10, 20, 30, 40))
 
+```
 
+## Update color scheme using a palette in paletteer:
+
+Make a horizontal boxplot with common name on y, total length on x, with color changing based on common name
+```{r}
+lizards_fct <- lizards %>% 
+  mutate(common_name = fct_reorder(common_name, total_length, .fun = median))
+
+ggplot(data = lizards_fct, aes(y = common_name, x = total_length)) +
+  geom_boxplot(aes(fill = common_name), show.legend = FALSE) +
+  scale_fill_paletteer_d(palette = "trekcolors::andorian")
+
+```
+
+## Fine tuning within theme
+**need to know what object is stored that you want to change, what kind of element that is, what aesthetic you're changing**
+
+Grid lines and background colors
+```{r}
+ggplot(data = lizards, aes(x = total_length, y = weight)) +
+  geom_point() +
+  theme(
+    panel.background = element_rect(fill = "yellow", 
+                                    color = "purple",
+                                    size = 10),
+    panel.grid.major.x = element_line(color = "red"),
+    panel.grid.major = element_line(color = "blue"),
+    #most specific level trumps other things within theme
+    panel.grid.minor.y = element_line(color = "orange")
+    #use `panel.grid = element.blank` to create no grid lines
+  )
+
+```
+
+Window, axis text, labels
+```{r}
+ggplot(data = lizards, aes(x = total_length, y = weight)) +
+  geom_point() +
+  theme(
+    panel.grid = element_blank(),
+    plot.background = element_rect(fill = "cyan4"),
+    axis.text.x = element_text(color = "orange"),
+    axis.title = element_text(color = "yellow", size = 15)
+  )
+
+```
 
 
 
