@@ -1,0 +1,181 @@
+---
+title: 'EDS 221: Day 9'
+author: "Clarissa Boyajian"
+date: "8/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# General use packages:
+library(tidyverse)
+library(here)
+library(janitor)
+
+# Specifically for plots:
+library(patchwork)
+library(ggrepel)
+library(gghighlight)
+library(paletteer)
+library(ggExtra)
+library(ggbeeswarm)
+
+# And for another dataset we'll explore:
+library(gapminder)
+
+# Spatial (maps, maps, maps)
+library(sf)
+```
+
+
+```{r}
+lizards <- read_csv(here("data_tidy", "lizards.csv"))
+```
+
+## Use `ggrepel()`
+
+Make a subset from lizards called ww_lizards, that only contains observations for "western whiptail" lizards from the site "sand"
+```{r}
+ww_lizards <- lizards %>% 
+  filter(common_name == "western whiptail", site == "sand")
+
+ggplot(data = ww_lizards, aes(x = total_length, y = weight)) +
+  geom_point() +
+  geom_text_repel(aes(label = toe_num), size = 3, max.overlaps = 20)
+```
+
+```{r}
+#View(gapminder)
+
+# Filter for only Europe, then create a scatterplot of gdpPercap (x) and lifeExp (y), label by country name
+
+gapminder_eur <- gapminder %>% 
+  filter(continent == "Europe", year == 2002)
+
+ggplot(data = gapminder_eur, aes(x = gdpPercap, y = lifeExp)) + 
+  geom_point() +
+  geom_text_repel(aes(label = country), size = 3)
+
+```
+
+## gghighlight
+```{r}
+p <- ggplot(data = lizards, aes(x = total_length, y = weight)) +
+  geom_point()
+
+p + gghighlight(toe_num == 250, label_key = toe_num)
+```
+
+Create line plot of total length (x) vs weight (y) and highlight species with weight above 30
+```{r}
+q <- ggplot(data = lizards, aes(x = total_length, y = weight)) +
+  geom_line(aes(color = common_name)) + 
+  gghighlight(max(weight) > 30)
+
+q
+```
+
+## Use `patchwork()` for compound figures
+
+```{r}
+# can create a compound figure of graphs
+# use & to add theme to all figures within compound figure
+(p | q) / (q * p) / (q | q) &
+  theme_minimal()
+```
+
+## A few new graph types
+
+### Marginal plots
+
+Marginal plot with rug
+```{r}
+whiptails <- lizards %>% 
+  filter(common_name == "western whiptail") %>% 
+  drop_na(total_length, weight)
+
+ggplot(data = whiptails, aes(x = total_length, y = weight)) +
+  geom_point() +
+  geom_rug()
+
+```
+
+Marginal plot with boxplots in margins
+```{r}
+ggplot(data = whiptails, aes(x = total_length, y = weight)) +
+  geom_point(aes(color = sex), size = 2) +
+  scale_color_manual(values = c("cyan4", "black", "goldenrod"),
+                     name = "Sex:",
+                     labels = c("female", "juvenile", "male")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### Beeswarm plot
+
+**can layer plots on top of each other**
+
+**for categorical data, good idea to show actual data as beeswarm and then put summmary info on top**
+```{r}
+ggplot(data = whiptails, aes(x = sex, y = weight)) +
+  geom_beeswarm() +
+  geom_violin(fill = NA) +
+  geom_boxplot(fill = NA)
+
+```
+
+### Headmap with `geomtile()`
+
+Make new dataframe called lizard_counts, starting from lizards, with date converted to class Date, then count by year and common name the number of lizards observed
+```{r}
+lizard_counts <- lizards %>% 
+  mutate(date = lubridate::mdy(date)) %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  group_by(year, common_name) %>% 
+  summarize(count = n())
+  # could use `count(year, common name)` instead of `group_by() %>% summarize(n())`
+```
+
+Make heatmap - fill color = amoutn of lizards each year
+```{r}
+ggplot(data = lizard_counts, aes(x = year, y = common_name)) +
+  geom_tile(aes(fill = count)) + 
+  geom_text(aes(label = count), color = "white", size = 3) +
+  scale_fill_viridis_c()
+  # colorblind friendly color scheme
+```
+
+### Make a map
+
+Map dominant vegetation types
+
+```{r}
+jornada_vegetation <- read_sf(here("data_raw", "spatial_vegetation", "doc.kml")) %>% 
+  select(Name) %>% 
+  clean_names()
+
+ggplot(data = jornada_vegetation) +
+  geom_sf(aes(fill = name), color = NA) +
+  scale_fill_paletteer_d(palette = "ggthemes::manyeys") +
+  labs(x = "Longitude",
+       y = "Latitdue",
+       fill = "Dominant vegetation:") +
+  theme_classic()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
